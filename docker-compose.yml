@@ -1,0 +1,24 @@
+services:
+    ollama:
+        image: ollama/ollama
+        container_name: ollama
+        environment:
+          - LLM_MODEL_VERSION=embeddinggemma
+        volumes:
+          - ./model_files:/model_files  # Mount the directory with the trained mode
+          - ./ollama_data:/root/.ollama
+          # - ./ollama_entrypoint.sh:/ollama_entrypoint.sh
+        ports:
+            - "11434:11434"
+    app:
+        build: .
+        container_name: semantic-search-app
+        command: uvicorn app.main:app --reload --workers 1 --host 0.0.0.0 --port 8000
+        volumes:
+            - .:/app
+        ports:
+            - "8000:8000"
+        depends_on:
+            - ollama
+volumes:
+    db-data:
