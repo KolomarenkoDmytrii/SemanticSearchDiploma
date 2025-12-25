@@ -11,7 +11,8 @@ services:
         ports:
             - "11434:11434"
     app:
-        build: .
+        build:
+            dockerfile: ./AppDockerfile
         container_name: semantic-search-app
         command: uvicorn app.main:app --reload --workers 1 --host 0.0.0.0 --port 8000
         volumes:
@@ -20,5 +21,13 @@ services:
             - "8000:8000"
         depends_on:
             - ollama
-volumes:
-    db-data:
+    # frontend:
+    #     build:
+    #         - dockerfile: ./FrontendDockerfile
+    #     container_name: semantic-search-frontend
+    #     ports:
+    #         - "5173:5173"
+    #     volumes:
+    #         - ./frontend:/frontend
+    #     depends_on:
+    #         - app
