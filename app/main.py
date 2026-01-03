@@ -4,6 +4,7 @@
 
 # TODO: Реалізувати вилучення документу
 import os
+import mimetypes
 
 import fastapi
 import chromadb
@@ -100,11 +101,47 @@ def delete_file(
         os.remove(config.DATA_DIRECTORY / "docs" / filename)
         return {"filename": filename, "removed": True}
     except FileNotFoundError:
-        return fastapi.JSONResponse(
-            content={
-                "filename": filename,
-                "removed": False,
-                "error_message": "File not found",
-            },
-            status_code=404,
-        )
+        # return fastapi.JSONResponse(
+        #     content={
+        #         "filename": filename,
+        #         "removed": False,
+        #         "error_message": "File not found",
+        #     },
+        #     status_code=404,
+        # )
+        raise fastapi.HTTPException(status_code=404, detail="File not found")
+
+
+# https://davidmuraya.com/blog/fastapi-file-downloads/
+@app.get("/files/download/{filename}")
+async def download_file(filename: str):
+    """
+    Streams a file from the predefined static directory.
+    """
+    # Sanitize the filename to prevent directory traversal attacks.
+    if ".." in filename or "/" in filename:
+        raise fastapi.HTTPException(status_code=400, detail="Invalid filename")
+
+    file_path = config.DATA_DIRECTORY / "docs" / filename
+
+    if not file_path.exists():
+        raise fastapi.HTTPException(status_code=404, detail="File not found")
+
+    # Guess the media type based on the file extension.
+    media_type, _ = mimetypes.guess_type(file_path)
+    if media_type is None:
+        media_type = "application/octet-stream"  # Default for unknown file types
+
+    file_size = file_path.stat().st_size
+
+    # Return a FileResponse to stream the file.
+    return fastapi.responses.FileResponse(
+        path=file_path,
+        filename=filename,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Encoding": "identity",  # Disable gzip compression
+            "Content-Length": str(file_size),
+        },
+    )
