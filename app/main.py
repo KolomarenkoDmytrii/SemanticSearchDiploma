@@ -6,6 +6,8 @@
 
 import os
 import mimetypes
+import unicodedata
+import urllib
 
 import fastapi
 import chromadb
@@ -44,6 +46,7 @@ def upload_doc(
         raise fastapi.HTTPException(status_code=400, detail="Not supported file type")
 
     contents = file.file.read()
+    # filename = unicodedata.normalize("NFC", file.filename)
 
     try:
         with open(config.DATA_DIRECTORY / "docs" / file.filename, "wb") as f:
@@ -137,14 +140,18 @@ async def download_file(filename: str):
 
     file_size = file_path.stat().st_size
 
-    # Return a FileResponse to stream the file.
+    # HTTP headers accept only ASCII characters
+    quoted_filename = urllib.parse.quote(filename, safe="!#$&+-.^_`|~")
+
+    # return a FileResponse to stream the file
     return fastapi.responses.FileResponse(
         path=file_path,
         filename=filename,
         media_type=media_type,
         headers={
-            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quoted_filename}",
             "Content-Encoding": "identity",  # Disable gzip compression
             "Content-Length": str(file_size),
         },
     )
+
