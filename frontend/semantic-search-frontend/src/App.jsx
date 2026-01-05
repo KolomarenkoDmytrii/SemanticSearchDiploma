@@ -98,31 +98,65 @@ function Home() {
 
 function FileUploadForm({ updateFilesListHandler }) {
   const [selectedFile, setSelectedFile] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isError, setIsError] = useState(false);
 
   async function onFileUpload() {
+    setIsUploading(true);
+    setIsError(false);
+
     const formData = new FormData();
     formData.append('file', selectedFile);
 
     try {
-      await fetch(API_URL + '/files/upload/', {
+      const response = await fetch(API_URL + '/files/upload/', {
         method: 'POST',
         body: formData,
       });
+      const task = await response.json();
 
-      setSelectedFile(null);
-      updateFilesListHandler();
+      let result;
+      do {
+        const resultResponse = await fetch(API_URL + `/tasks/${task.task_id}`);
+        result = await resultResponse.json();
+
+        if (result.state === 'FAILURE') {
+          throw new Error('File uploading completed with failure');
+        }
+        if (result.state = 'SUCCESS') {
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } while (true)
+
+      // setSelectedFile(null);
+      // updateFilesListHandler();
     } catch (error) {
       console.error(error);
+      setIsError(true);
+    } finally {
+      setSelectedFile(null);
+      setIsUploading(false);
+      updateFilesListHandler();
     }
   }
 
   return <Form.Group>
     <Form.Label>Upload a file to the server</Form.Label>
     <Stack direction="horizontal" gap={3}>
-      <Form.Control type="file" className="w-auto" onChange={(event) => setSelectedFile(event.target.files[0])} />
-      {selectedFile && <Button onClick={onFileUpload}>Upload!</Button>}
+      <Form.Control
+        type="file"
+        className="w-auto"
+        onChange={(event) => {
+          setSelectedFile(event.target.files[0]);
+          setIsError(false);
+        }
+        } />
+      {(selectedFile && !isUploading) && <Button onClick={onFileUpload}>Upload!</Button>}
+      {isUploading && <Badge bg="info">Processing...</Badge>}
+      {isError && <Badge bg="danger">Error while processing!</Badge>}
     </Stack>
-  </Form.Group >;
+  </Form.Group>;
 }
 
 function FileListItem({ filename }) {
@@ -186,7 +220,7 @@ function FilesManagement() {
 
   return <>
     <FileUploadForm updateFilesListHandler={updateFilesList} />
-    <hr/>
+    <hr />
     <h3>Uploaded files</h3>
     <ListGroup>
       {filenames.map((filename) => <ListGroup.Item key={filename}><FileListItem filename={filename} /></ListGroup.Item>)}

@@ -10,6 +10,34 @@ services:
           # - ./ollama_entrypoint.sh:/ollama_entrypoint.sh
         ports:
             - "11434:11434"
+        logging:
+            driver: "none"
+
+    redis:
+        image: redis:alpine
+        container_name: queue-service-redis
+        ports:
+            - "6379:6379"
+        healthcheck:
+            test: ["CMD", "redis-cli", "ping"]
+            interval: 5s
+            timeout: 3s
+            retries: 5
+
+    # https://jarrettmeyer.com/software/fastapi-celery/
+    tasks-queue:
+        build:
+            dockerfile: ./AppDockerfile
+        restart: unless-stopped
+        depends_on:
+            redis:
+                condition: service_healthy
+        volumes:
+            - .:/app
+        environment:
+            - CELERY_RESULT_EXPIRES=900
+        command: celery -A app.tasks worker --concurrency=2 --loglevel=INFO
+
     app:
         build:
             dockerfile: ./AppDockerfile
@@ -21,6 +49,8 @@ services:
             - "8000:8000"
         depends_on:
             - ollama
+            - tasks-queue
+
     # frontend:
     #     build:
     #         - dockerfile: ./FrontendDockerfile

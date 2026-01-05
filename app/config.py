@@ -6,5 +6,7 @@ DATA_DIRECTORY = pathlib.Path("data")
 OLLAMA_URL = "http://ollama:11434"
 CHROMA_DB_COLLECTION_NAME = "docs"
 
+REDIS_URL = "redis://redis:6379" # https://stackoverflow.com/a/78262829
+
 DOC_CHUNK_SIZE = 640
 CHUNK_OVERLAP_RATIO = 0.25

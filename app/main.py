@@ -6,12 +6,16 @@
 
 import os
 import mimetypes
-import unicodedata
+
+# import unicodedata
 import urllib
+import uuid
 
 import fastapi
 import chromadb
 
+from . import tasks
+from . import models
 from .dependencies import chroma_collections
 from . import config
 from .docs_processing import docs_saving
@@ -35,21 +39,55 @@ def search_docs(
     return docs_collection.query(query_texts=[query], n_results=n_results)
 
 
+# def process_uploaded_doc(
+#     file: fastapi.UploadFile, docs_collection: chromadb.Collection
+# ):
+#     contents = file.file.read()
+#     # filename = unicodedata.normalize("NFC", file.filename)
+
+#     try:
+#         with open(config.DATA_DIRECTORY / "docs" / file.filename, "wb") as f:
+#             f.write(contents)
+
+#     except Exception:
+#         raise fastapi.HTTPException(
+#             status_code=500, detail="Error occured during saving the uploaded file"
+#         )
+#     finally:
+#         file.file.close()
+
+#     # try:
+#     #     # collection.add(
+#     #     #     documents=[contents.decode("utf-8")], ids=[file.filename]
+#     #     # )
+#     #     docs_processing.saving.save_doc_to_db(contents.decode("utf-8"), file.filename, collection)
+#     # except Exception:
+#     #     raise fastapi.HTTPException(
+#     #         status_code=500, detail="Error occured during processing the uploaded file"
+#     #     )
+
+#     # docs_saving.save_doc_to_db(contents.decode("utf-8"), file.filename, docs_collection)
+#     docs_saving.save_doc_to_db(contents, file.filename, docs_collection)
+
+#     return {"message": f"File '{file.filename}' was successfuly uploaded"}
+
+
 @app.post("/files/upload")
 def upload_doc(
     file: fastapi.UploadFile,
     docs_collection: chromadb.Collection = fastapi.Depends(
         chroma_collections.get_docs_collection
     ),
-):
+) -> models.TaskResponse:
     if not file.content_type in docs_saving.SUPPORTED_FORMATS:
         raise fastapi.HTTPException(status_code=400, detail="Not supported file type")
 
     contents = file.file.read()
     # filename = unicodedata.normalize("NFC", file.filename)
+    filepath = config.DATA_DIRECTORY / "docs" / file.filename
 
     try:
-        with open(config.DATA_DIRECTORY / "docs" / file.filename, "wb") as f:
+        with open(filepath, "wb") as f:
             f.write(contents)
 
     except Exception:
@@ -59,20 +97,44 @@ def upload_doc(
     finally:
         file.file.close()
 
-    # try:
-    #     # collection.add(
-    #     #     documents=[contents.decode("utf-8")], ids=[file.filename]
-    #     # )
-    #     docs_processing.saving.save_doc_to_db(contents.decode("utf-8"), file.filename, collection)
-    # except Exception:
-    #     raise fastapi.HTTPException(
-    #         status_code=500, detail="Error occured during processing the uploaded file"
-    #     )
+    # # try:
+    # #     # collection.add(
+    # #     #     documents=[contents.decode("utf-8")], ids=[file.filename]
+    # #     # )
+    # #     docs_processing.saving.save_doc_to_db(contents.decode("utf-8"), file.filename, collection)
+    # # except Exception:
+    # #     raise fastapi.HTTPException(
+    # #         status_code=500, detail="Error occured during processing the uploaded file"
+    # #     )
 
-    # docs_saving.save_doc_to_db(contents.decode("utf-8"), file.filename, docs_collection)
-    docs_saving.save_doc_to_db(contents, file.filename, docs_collection)
+    # # docs_saving.save_doc_to_db(contents.decode("utf-8"), file.filename, docs_collection)
+    # docs_saving.save_doc_to_db(contents, file.filename, docs_collection)
 
-    return {"message": f"File '{file.filename}' was successfuly uploaded"}
+    # return {"message": f"File '{file.filename}' was successfuly uploaded"}
+
+    ## return fastapi.response.StreamingResponse(
+    ##     lambda: (yield process_uploaded_doc(file, docs_collection)),
+    ##     media_type="text/event-stream",
+    ## )
+
+    # result = tasks.celery_app.send_task(
+    #     "process_uploaded_doc",
+    #     kwargs={"filepath": str(filepath), "docs_collection": docs_collection},
+    # )
+    result = tasks.celery_app.send_task(
+        "process_uploaded_doc",
+        kwargs={"filepath": str(filepath)},
+    )
+
+    return models.TaskResponse(
+        task_id=result.id, state=result.state, name="process_uploaded_doc"
+    )
+
+
+@app.get("/tasks/{task_id}")
+def get_task(task_id: str) -> models.TaskResponse:
+    """Get status of a specific task"""
+    return tasks.get_task(task_id)
 
 
 @app.get("/files/list")
@@ -141,6 +203,7 @@ async def download_file(filename: str):
     file_size = file_path.stat().st_size
 
     # HTTP headers accept only ASCII characters
+    # https://stackoverflow.com/questions/43365640/set-unicode-filename-in-flask-response-header
     quoted_filename = urllib.parse.quote(filename, safe="!#$&+-.^_`|~")
 
     # return a FileResponse to stream the file
@@ -154,4 +217,3 @@ async def download_file(filename: str):
             "Content-Length": str(file_size),
         },
     )
-
