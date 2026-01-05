@@ -2,7 +2,8 @@
 # https://medium.com/@arunpatidar26/rag-chromadb-ollama-python-guide-for-beginners-30857499d0a0
 # https://docs.trychroma.com/integrations/embedding-models/ollama
 
-# TODO: Реалізувати вилучення документу
+# TODO: #1 Доробити обробку великих документів
+
 import os
 import mimetypes
 
@@ -39,7 +40,7 @@ def upload_doc(
         chroma_collections.get_docs_collection
     ),
 ):
-    if not file.content_type == "text/plain":
+    if not file.content_type in docs_saving.SUPPORTED_FORMATS:
         raise fastapi.HTTPException(status_code=400, detail="Not supported file type")
 
     contents = file.file.read()
@@ -64,7 +65,9 @@ def upload_doc(
     #     raise fastapi.HTTPException(
     #         status_code=500, detail="Error occured during processing the uploaded file"
     #     )
-    docs_saving.save_doc_to_db(contents.decode("utf-8"), file.filename, docs_collection)
+
+    # docs_saving.save_doc_to_db(contents.decode("utf-8"), file.filename, docs_collection)
+    docs_saving.save_doc_to_db(contents, file.filename, docs_collection)
 
     return {"message": f"File '{file.filename}' was successfuly uploaded"}
 
