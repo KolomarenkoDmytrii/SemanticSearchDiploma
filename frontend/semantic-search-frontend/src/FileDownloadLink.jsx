@@ -1,4 +1,4 @@
-import { API_URL } from './config.js'
+import { API_URL } from './config'
 
 function FileDownloadLink({ filename }) {
     return <a href={API_URL + '/files/download/' + filename}>{filename}</a>;
