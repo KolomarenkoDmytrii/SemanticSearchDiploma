@@ -1,0 +1,7 @@
+FROM ollama/ollama
+
+COPY ollama_entrypoint.sh ./
+RUN chmod +x ./ollama_entrypoint.sh
+
+ENTRYPOINT [ "./ollama_entrypoint.sh" ]
+CMD ["ollama", "serve"]

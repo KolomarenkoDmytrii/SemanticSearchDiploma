@@ -18,7 +18,9 @@ if ollama list | grep -q "$MODEL_NAME"; then
 else
   echo "Retrieving model: $MODEL_NAME"
   ollama pull "$MODEL_NAME"
+  # waiting for model pull
+  while ! ollama list | grep -q "$MODEL_NAME"; do
+    sleep 5
+  done
   echo "Model $MODEL_NAME is ready!"
 fi
-
-wait $pid

@@ -1,6 +1,9 @@
 services:
     ollama:
         image: ollama/ollama
+        build:
+            dockerfile: ./OllamaDockerfile
+            context: ./ollama
         container_name: ollama
         environment:
           - LLM_MODEL_VERSION=embeddinggemma
@@ -8,10 +11,15 @@ services:
           - ./model_files:/model_files  # Mount the directory with the trained mode
           - ./ollama_data:/root/.ollama
           # - ./ollama_entrypoint.sh:/ollama_entrypoint.sh
+        # command: pull embeddinggemma
         ports:
             - "11434:11434"
-        logging:
-            driver: "none"
+        healthcheck:
+            test: ["CMD", "ollama", "list"]
+            interval: 1m30s
+            timeout: 30s
+            retries: 5
+            start_period: 30s
 
     redis:
         image: redis:alpine
@@ -37,6 +45,12 @@ services:
         environment:
             - CELERY_RESULT_EXPIRES=900
         command: celery -A app.tasks worker --concurrency=2 --loglevel=INFO
+        healthcheck:
+            test: ["CMD", "celery", "report"]
+            interval: 1m30s
+            timeout: 30s
+            retries: 5
+            start_period: 30s
 
     app:
         build:
@@ -48,8 +62,10 @@ services:
         ports:
             - "8000:8000"
         depends_on:
-            - ollama
-            - tasks-queue
+            ollama:
+                condition: service_healthy
+            tasks-queue:
+                condition: service_healthy
 
     # frontend:
     #     build:
