@@ -37,7 +37,7 @@ function FileUploadForm({ updateFilesListHandler }) {
         if (result.state === 'FAILURE') {
           throw new Error('File uploading completed with failure');
         }
-        if (result.state = 'SUCCESS') {
+        if (result.state === 'SUCCESS') {
           break;
         }
         await new Promise(resolve => setTimeout(resolve, 2000));
