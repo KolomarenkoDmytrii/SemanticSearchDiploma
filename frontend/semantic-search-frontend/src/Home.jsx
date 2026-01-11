@@ -8,10 +8,10 @@ function Home() {
 
     return <>
         {/* <div className="fixed-top" style={{ position: 'absolute', paddingTop: '20px + var(--bs-navbar-height)' }}> */}
-        <div>
+        <div className="mt-4 mb-3">
             <SearchForm setResults={setResults} />
         </div>
-        <div>
+        <div className="d-grid gap-3">
             <SearchResults results={results} />
         </div>
     </>;
