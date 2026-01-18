@@ -5,8 +5,13 @@ services:
             dockerfile: ./OllamaDockerfile
             context: ./ollama
         container_name: ollama
+         # Give access to the host devices (for AMD GPU/Vulkan support)
+        devices:
+        - "/dev/kfd:/dev/kfd"
+        - "/dev/dri:/dev/dri"
         environment:
           - LLM_MODEL_VERSION=embeddinggemma
+          - OLLAMA_VULKAN=1
         volumes:
           - ./model_files:/model_files  # Mount the directory with the trained mode
           - ./ollama_data:/root/.ollama
@@ -42,6 +47,8 @@ services:
                 condition: service_healthy
         volumes:
             - .:/app
+            # - ./chroma:/app/chroma
+            - ./data:/app/data
         environment:
             - CELERY_RESULT_EXPIRES=900
         command: celery -A app.tasks worker --concurrency=2 --loglevel=INFO
@@ -52,19 +59,40 @@ services:
             retries: 5
             start_period: 30s
 
+    chroma-db:
+        # https://cookbook.chromadb.dev/running/health-checks/
+        image: chromadb/chroma
+        container_name: semantic-search-chroma-db
+        volumes:
+            - ./data/chroma:/data
+        ports:
+            - "8000:8000"
+        command: "run --host 0.0.0.0 --port 8000"
+        environment:
+            - IS_PERSISTENT=TRUE
+        healthcheck:
+            test: [ "CMD", "/bin/bash", "-c", "cat < /dev/null > /dev/tcp/localhost/8000" ]
+            interval: 30s
+            timeout: 10s
+            retries: 3
+
     app:
         build:
             dockerfile: ./AppDockerfile
         container_name: semantic-search-app
-        command: uvicorn app.main:app --reload --workers 1 --host 0.0.0.0 --port 8000
+        command: uvicorn app.main:app --host 0.0.0.0 --port 8080
         volumes:
             - .:/app
+            # - ./chroma:/app/chroma
+            - ./data:/app/data
         ports:
-            - "8000:8000"
+            - "8080:8080"
         depends_on:
             ollama:
                 condition: service_healthy
             tasks-queue:
+                condition: service_healthy
+            chroma-db:
                 condition: service_healthy
 
     # frontend:
@@ -77,3 +105,7 @@ services:
     #         - ./frontend:/frontend
     #     depends_on:
     #         - app
+
+# volumes:
+#     data
+#     chroma_db

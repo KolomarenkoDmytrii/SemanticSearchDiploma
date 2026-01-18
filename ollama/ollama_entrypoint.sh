@@ -24,3 +24,5 @@ else
   done
   echo "Model $MODEL_NAME is ready!"
 fi
+
+wait $pid
