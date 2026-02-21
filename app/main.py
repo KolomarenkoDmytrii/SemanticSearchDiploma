@@ -139,7 +139,7 @@ def get_task(task_id: str) -> models.TaskResponse:
 
 @app.get("/files/list")
 def list_files(
-    docs_limit: int = 100,
+    docs_limit: int = 2000,
     docs_offset: int = 0,
     docs_collection: chromadb.Collection = fastapi.Depends(
         chroma_collections.get_docs_collection
