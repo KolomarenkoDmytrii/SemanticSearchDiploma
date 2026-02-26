@@ -27,7 +27,8 @@ def split_doc_into_chuncks(doc: str) -> list[str]:
 
 
 # def save_doc_to_db(doc: bytes, doc_filename: str, collection: chromadb.Collection):
-def save_doc_to_db(doc: bytes, doc_filename: str, chroma_client: chromadb.Client):
+# def save_doc_to_db(doc: bytes, doc_filename: str, chroma_client: chromadb.Client):
+def save_doc_to_db(doc: bytes, doc_filename: str, docs_collection: chromadb.Collection):
     extractor = textxtract.SyncTextExtractor()
     text = extractor.extract(doc, doc_filename)
     chunks = split_doc_into_chuncks(text)
@@ -44,7 +45,7 @@ def save_doc_to_db(doc: bytes, doc_filename: str, chroma_client: chromadb.Client
     #         metadatas=[{"filename": doc_filename}],
     #     )
 
-    docs_collection = chroma_collections.get_docs_collection(chroma_client)
+    # docs_collection = chroma_collections.get_docs_collection(chroma_client)
 
     BATCH_SIZE = 5
     for i in range(0, len(chunks), BATCH_SIZE):

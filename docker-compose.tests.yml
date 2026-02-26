@@ -1,0 +1,69 @@
+services:
+    # Mock or Small-scale Ollama for testing
+    ollama-test:
+        image: ollama/ollama
+        container_name: ollama-test
+        build:
+            dockerfile: ./OllamaDockerfile
+            context: ./ollama
+        environment:
+            - LLM_MODEL_VERSION=locusai/all-minilm-l6-v2
+            - OLLAMA_NUM_PARALLEL=4
+        # No GPU needed for basic API integration tests to save resources
+        healthcheck:
+            test: [ "CMD", "ollama", "list" ]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+
+    redis-test:
+        image: redis:alpine
+        container_name: redis-test
+        # No persistence for tests to ensure a clean slate every run
+        command: redis-server --save "" --appendonly no
+        healthcheck:
+            test: [ "CMD", "redis-cli", "ping" ]
+            interval: 5s
+            timeout: 3s
+            retries: 5
+
+    chroma-test:
+        image: chromadb/chroma
+        container_name: chroma-test
+        environment:
+            - IS_PERSISTENT=FALSE
+            - ANONYMIZED_TELEMETRY=False
+        healthcheck:
+            test: [ "CMD", "/bin/bash", "-c", "cat < /dev/null > /dev/tcp/localhost/8000" ]
+            interval: 10s
+            timeout: 5s
+            retries: 3
+
+    # The Test Runner Service
+    pytest-runner:
+        build:
+            dockerfile: ./AppDockerfile
+            target: development
+        container_name: pytest-runner
+        environment:
+            - REDIS_URL=redis://redis-test:6379/0
+            - CHROMA_HOST=chroma-test
+            - CHROMA_PORT=8000
+            - OLLAMA_HOST=http://ollama-test:11434
+            - CELERY_TASK_ALWAYS_EAGER=True # Force sync execution as recommended
+            - DATA_DIRECTORY=/tmp/test_data
+            # - PYTHONPATH=/app--remove-orphans
+            # - PYTHONPATH=/app
+            # working_dir: /app
+        volumes:
+            - .:/app
+        depends_on:
+            redis-test:
+                condition: service_healthy
+            chroma-test:
+                condition: service_healthy
+            ollama-test:
+                condition: service_healthy
+        # Run pytest and then exit
+        # command: pytest -vvv --trace tests
+        command: pytest -vv -s tests

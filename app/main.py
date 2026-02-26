@@ -79,13 +79,14 @@ def upload_doc(
         chroma_collections.get_docs_collection
     ),
 ) -> models.TaskResponse:
+    print("test_upload_and_search_flow | upload_doc")
     if not file.content_type in docs_saving.SUPPORTED_FORMATS:
         raise fastapi.HTTPException(status_code=400, detail="Not supported file type")
 
     contents = file.file.read()
     # filename = unicodedata.normalize("NFC", file.filename)
     filepath = config.DATA_DIRECTORY / "docs" / file.filename
-
+    print("test_upload_and_search_flow | upload_doc > before writing")
     try:
         with open(filepath, "wb") as f:
             f.write(contents)
@@ -96,6 +97,7 @@ def upload_doc(
         )
     finally:
         file.file.close()
+    print("test_upload_and_search_flow | upload_doc >| after writing file")
 
     # # try:
     # #     # collection.add(
@@ -121,10 +123,12 @@ def upload_doc(
     #     "process_uploaded_doc",
     #     kwargs={"filepath": str(filepath), "docs_collection": docs_collection},
     # )
+    print("test_upload_and_search_flow | upload_doc > before celery task")
     result = tasks.celery_app.send_task(
         "process_uploaded_doc",
         kwargs={"filepath": str(filepath)},
     )
+    print("test_upload_and_search_flow | upload_doc >| after celery task")
 
     return models.TaskResponse(
         task_id=result.id, state=result.state, name="process_uploaded_doc"

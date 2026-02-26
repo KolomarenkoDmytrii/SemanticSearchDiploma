@@ -18,16 +18,16 @@ celery_app = celery.Celery("tasks", broker=config.REDIS_URL, backend=config.REDI
 @celery_app.task(name="process_uploaded_doc")
 def process_uploaded_doc(
     # filepath: str, docs_collection: chromadb.Collection
-    filepath: str
+    filepath: str,
 ):
     # contents = file.file.read()
     # filename = unicodedata.normalize("NFC", file.filename)
     filepath = pathlib.Path(filepath)
-
+    print("process_uploaded_doc > before reading file")
     with open(filepath, "rb") as f:
         # f.write(contents)
         contents = f.read()
-
+    print("process_uploaded_doc >| after reading file")
     # try:
     #     # collection.add(
     #     #     documents=[contents.decode("utf-8")], ids=[file.filename]
@@ -42,8 +42,14 @@ def process_uploaded_doc(
 
     # docs_collection = chroma_collections.get_docs_collection(chroma_collections.get_chroma_client())
     # docs_saving.save_doc_to_db(contents, filepath.name, docs_collection)
+    print("process_uploaded_doc > before chroma_collections.get_chroma_client()")
     chroma_client = chroma_collections.get_chroma_client()
-    docs_saving.save_doc_to_db(contents, filepath.name, chroma_client)
+    docs_collection = chroma_collections.get_docs_collection(chroma_client)
+    print("process_uploaded_doc >| after chroma_collections.get_chroma_client()")
+    print("process_uploaded_doc > before save_doc_to_db")
+    # docs_saving.save_doc_to_db(contents, filepath.name, chroma_client)
+    docs_saving.save_doc_to_db(contents, filepath.name, docs_collection)
+    print("process_uploaded_doc >| after save_doc_to_db")
 
     return {"message": f"File '{filepath.name}' was successfuly uploaded"}
 

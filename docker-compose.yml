@@ -1,10 +1,10 @@
 services:
-    ollama:
+    ollama-service:
         image: ollama/ollama
         build:
             dockerfile: ./OllamaDockerfile
             context: ./ollama
-        container_name: ollama
+        container_name: semantic-search-ollama-service
          # Give access to the host devices (for AMD GPU/Vulkan support)
         devices:
         - "/dev/kfd:/dev/kfd"
@@ -26,7 +26,7 @@ services:
             retries: 5
             start_period: 30s
 
-    redis:
+    redis-service:
         image: redis:alpine
         container_name: queue-service-redis
         ports:
@@ -41,9 +41,10 @@ services:
     tasks-queue:
         build:
             dockerfile: ./AppDockerfile
+            target: production
         restart: unless-stopped
         depends_on:
-            redis:
+            redis-service:
                 condition: service_healthy
         volumes:
             - .:/app
@@ -77,6 +78,7 @@ services:
     app:
         build:
             dockerfile: ./AppDockerfile
+            target: production
         container_name: semantic-search-app
         command: uvicorn app.main:app --host 0.0.0.0 --port 8080
         volumes:
@@ -86,7 +88,7 @@ services:
         ports:
             - "8080:8080"
         depends_on:
-            ollama:
+            ollama-service:
                 condition: service_healthy
             tasks-queue:
                 condition: service_healthy
