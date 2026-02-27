@@ -1,3 +1,5 @@
+"""Module with configuration parameters."""
+
 import os
 from pathlib import Path
 
@@ -17,6 +19,7 @@ REDIS_URL: str = os.getenv(
 # CHUNK_OVERLAP_RATIO = 0.25
 DOC_CHUNK_SIZE: int = 512
 CHUNK_OVERLAP_RATIO: float = 0.15
+BATCH_SIZE: int = 5
 
 CHROMA_DB_HOST: str = os.getenv("CHROMA_DB_HOST", "chroma-db")
 CHROMA_DB_PORT: int = int(os.getenv("CHROMA_DB_PORT", "8000"))

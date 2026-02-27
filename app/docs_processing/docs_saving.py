@@ -1,11 +1,12 @@
+"""Docs processing utilities."""
+
 from typing import cast
 
 import semchunk
-import textxtract # type: ignore[import-untyped]
+import textxtract  # type: ignore[import-untyped]
 import chromadb
 
 from .. import config
-from ..dependencies import chroma_collections
 
 SUPPORTED_FORMATS = (
     "text/plain",  # .txt
@@ -19,24 +20,43 @@ SUPPORTED_FORMATS = (
 
 
 def split_doc_into_chuncks(doc: str) -> list[str]:
+    """Split read document file content into chunks using
+        parameters specified in app.config module.
+
+    Args:
+        doc (str): Read document file content.
+
+    Returns:
+        list[str]: A list of the generated chunks.
+    """
     chuncker = semchunk.chunkerify(
         lambda text: len(text.split()), config.DOC_CHUNK_SIZE
     )
     return cast(list[str], chuncker(doc, overlap=config.CHUNK_OVERLAP_RATIO))
 
 
-def save_doc_to_db(doc: bytes, doc_filename: str, docs_collection: chromadb.Collection) -> None:
+def save_doc_to_db(
+    doc: bytes, doc_filename: str, docs_collection: chromadb.Collection
+) -> None:
+    """Process an uploaded document and save it to the database collection.
+
+    Args:
+        docs (bytes): A readed stored document file.
+        doc_filename (str): The name of a stored document file.
+        docs_collection (chromadb.Collection): A ChromaDB collection to which store processed data.
+    """
     extractor = textxtract.SyncTextExtractor()
     text = extractor.extract(doc, doc_filename)
     chunks = split_doc_into_chuncks(text)
 
-    BATCH_SIZE = 5
-    for i in range(0, len(chunks), BATCH_SIZE):
+    for i in range(0, len(chunks), config.BATCH_SIZE):
         start = i
-        end = i + BATCH_SIZE if i + BATCH_SIZE < len(chunks) else len(chunks)
-        print(
-            f"--------------------BATCH ({start}-{end} / {len(chunks)})--------------------"
+        end = (
+            i + config.BATCH_SIZE
+            if i + config.BATCH_SIZE < len(chunks)
+            else len(chunks)
         )
+        print(f"{doc_filename}: BATCH ({start}-{end} / {len(chunks)})")
         docs_collection.add(
             documents=chunks[start:end],
             ids=[f"{doc_filename}-{k}" for k in range(start, end)],

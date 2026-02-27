@@ -1,11 +1,11 @@
+"""Celery tasks definitions."""
+
 # https://jarrettmeyer.com/software/fastapi-celery/
 # https://docs.celeryq.dev/en/stable/getting-started/first-steps-with-celery.html#first-steps
 
 import pathlib
 
 import celery
-import fastapi
-import chromadb
 
 from . import config
 from . import models
@@ -19,6 +19,14 @@ celery_app = celery.Celery("tasks", broker=config.REDIS_URL, backend=config.REDI
 def process_uploaded_doc(
     filepath: str,
 ) -> dict[str, str]:
+    """Task for processing uploaded document.
+    
+    Args:
+        filepath (str): A path to an already stored but not yet processed file.
+    
+    Returns:
+        dict[str, str]: A message about succefuly processing an uploaded file.
+    """
     file = pathlib.Path(filepath)
     with open(file, "rb") as f:
         contents = f.read()
@@ -43,7 +51,9 @@ def get_task(task_id: str) -> models.TaskResponse:
     Returns:
         TaskResponse with current task state and metadata
     """
-    result: celery.result.AsyncResult = celery.result.AsyncResult(task_id, app=celery_app)
+    result: celery.result.AsyncResult = celery.result.AsyncResult(
+        task_id, app=celery_app
+    )
 
     return models.TaskResponse(
         task_id=task_id,
