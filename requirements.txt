@@ -7,3 +7,4 @@ semchunk
 textxtract[all]
 celery
 redis
+python-dotenv

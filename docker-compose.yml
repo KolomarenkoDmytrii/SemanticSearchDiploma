@@ -1,6 +1,6 @@
 services:
     ollama-service:
-        image: ollama/ollama
+        image: smsrch-prod/ollama
         build:
             dockerfile: ./OllamaDockerfile
             context: ./ollama
@@ -15,8 +15,6 @@ services:
         volumes:
           - ./model_files:/model_files  # Mount the directory with the trained mode
           - ./ollama_data:/root/.ollama
-          # - ./ollama_entrypoint.sh:/ollama_entrypoint.sh
-        # command: pull embeddinggemma
         ports:
             - "11434:11434"
         healthcheck:
@@ -48,7 +46,6 @@ services:
                 condition: service_healthy
         volumes:
             - .:/app
-            # - ./chroma:/app/chroma
             - ./data:/app/data
         environment:
             - CELERY_RESULT_EXPIRES=900
@@ -80,10 +77,16 @@ services:
             dockerfile: ./AppDockerfile
             target: production
         container_name: semantic-search-app
-        command: uvicorn app.main:app --host 0.0.0.0 --port 8080
+        environment:
+            - REDIS_URL=redis://redis-service:6379
+            - CHROMA_DB_HOST=chroma-db
+            - CHROMA_DB_PORT=8000
+            - CHROMA_DB_COLLECTION_NAME=docs
+            - OLLAMA_URL=http://ollama-service:11434
+            - LLM_MODEL=embeddinggemma
+            - DATA_DIRECTORY=data
         volumes:
             - .:/app
-            # - ./chroma:/app/chroma
             - ./data:/app/data
         ports:
             - "8080:8080"
@@ -94,18 +97,5 @@ services:
                 condition: service_healthy
             chroma-db:
                 condition: service_healthy
+        command: uvicorn app.main:app --host 0.0.0.0 --port 8080
 
-    # frontend:
-    #     build:
-    #         - dockerfile: ./FrontendDockerfile
-    #     container_name: semantic-search-frontend
-    #     ports:
-    #         - "5173:5173"
-    #     volumes:
-    #         - ./frontend:/frontend
-    #     depends_on:
-    #         - app
-
-# volumes:
-#     data
-#     chroma_db

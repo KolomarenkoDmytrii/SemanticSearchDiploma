@@ -2,8 +2,6 @@
 # https://medium.com/@arunpatidar26/rag-chromadb-ollama-python-guide-for-beginners-30857499d0a0
 # https://docs.trychroma.com/integrations/embedding-models/ollama
 
-# TODO: #1 Доробити обробку великих документів
-
 import os
 import mimetypes
 
@@ -39,39 +37,6 @@ def search_docs(
     return docs_collection.query(query_texts=[query], n_results=n_results)
 
 
-# def process_uploaded_doc(
-#     file: fastapi.UploadFile, docs_collection: chromadb.Collection
-# ):
-#     contents = file.file.read()
-#     # filename = unicodedata.normalize("NFC", file.filename)
-
-#     try:
-#         with open(config.DATA_DIRECTORY / "docs" / file.filename, "wb") as f:
-#             f.write(contents)
-
-#     except Exception:
-#         raise fastapi.HTTPException(
-#             status_code=500, detail="Error occured during saving the uploaded file"
-#         )
-#     finally:
-#         file.file.close()
-
-#     # try:
-#     #     # collection.add(
-#     #     #     documents=[contents.decode("utf-8")], ids=[file.filename]
-#     #     # )
-#     #     docs_processing.saving.save_doc_to_db(contents.decode("utf-8"), file.filename, collection)
-#     # except Exception:
-#     #     raise fastapi.HTTPException(
-#     #         status_code=500, detail="Error occured during processing the uploaded file"
-#     #     )
-
-#     # docs_saving.save_doc_to_db(contents.decode("utf-8"), file.filename, docs_collection)
-#     docs_saving.save_doc_to_db(contents, file.filename, docs_collection)
-
-#     return {"message": f"File '{file.filename}' was successfuly uploaded"}
-
-
 @app.post("/files/upload")
 def upload_doc(
     file: fastapi.UploadFile,
@@ -79,56 +44,27 @@ def upload_doc(
         chroma_collections.get_docs_collection
     ),
 ) -> models.TaskResponse:
-    print("test_upload_and_search_flow | upload_doc")
     if not file.content_type in docs_saving.SUPPORTED_FORMATS:
         raise fastapi.HTTPException(status_code=400, detail="Not supported file type")
 
     contents = file.file.read()
-    # filename = unicodedata.normalize("NFC", file.filename)
     filepath = config.DATA_DIRECTORY / "docs" / file.filename
-    print("test_upload_and_search_flow | upload_doc > before writing")
+    # Ensure directory exists before opening file
+    filepath.parent.mkdir(parents=True, exist_ok=True)
     try:
         with open(filepath, "wb") as f:
             f.write(contents)
-
     except Exception:
         raise fastapi.HTTPException(
             status_code=500, detail="Error occured during saving the uploaded file"
         )
     finally:
         file.file.close()
-    print("test_upload_and_search_flow | upload_doc >| after writing file")
 
-    # # try:
-    # #     # collection.add(
-    # #     #     documents=[contents.decode("utf-8")], ids=[file.filename]
-    # #     # )
-    # #     docs_processing.saving.save_doc_to_db(contents.decode("utf-8"), file.filename, collection)
-    # # except Exception:
-    # #     raise fastapi.HTTPException(
-    # #         status_code=500, detail="Error occured during processing the uploaded file"
-    # #     )
-
-    # # docs_saving.save_doc_to_db(contents.decode("utf-8"), file.filename, docs_collection)
-    # docs_saving.save_doc_to_db(contents, file.filename, docs_collection)
-
-    # return {"message": f"File '{file.filename}' was successfuly uploaded"}
-
-    ## return fastapi.response.StreamingResponse(
-    ##     lambda: (yield process_uploaded_doc(file, docs_collection)),
-    ##     media_type="text/event-stream",
-    ## )
-
-    # result = tasks.celery_app.send_task(
-    #     "process_uploaded_doc",
-    #     kwargs={"filepath": str(filepath), "docs_collection": docs_collection},
-    # )
-    print("test_upload_and_search_flow | upload_doc > before celery task")
     result = tasks.celery_app.send_task(
         "process_uploaded_doc",
         kwargs={"filepath": str(filepath)},
     )
-    print("test_upload_and_search_flow | upload_doc >| after celery task")
 
     return models.TaskResponse(
         task_id=result.id, state=result.state, name="process_uploaded_doc"
@@ -173,14 +109,6 @@ def delete_file(
         os.remove(config.DATA_DIRECTORY / "docs" / filename)
         return {"filename": filename, "removed": True}
     except FileNotFoundError:
-        # return fastapi.JSONResponse(
-        #     content={
-        #         "filename": filename,
-        #         "removed": False,
-        #         "error_message": "File not found",
-        #     },
-        #     status_code=404,
-        # )
         raise fastapi.HTTPException(status_code=404, detail="File not found")
 
 

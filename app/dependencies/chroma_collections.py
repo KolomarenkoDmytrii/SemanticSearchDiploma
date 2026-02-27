@@ -10,14 +10,12 @@ from chromadb.utils.embedding_functions.ollama_embedding_function import (
 
 from .. import config
 
-# # _chroma_client = chromadb.PersistentClient(path=str(config.CHROMA_DB_PATH))
 
 def get_chroma_client() -> chromadb.PersistentClient:
-    # chroma_client = chromadb.PersistentClient(path=str(config.CHROMA_DB_PATH))
-    # return chroma_client
-    chroma_client = chromadb.HttpClient(host=config.CHROMA_DB_HOST, port=config.CHROMA_DB_PORT)
+    chroma_client = chromadb.HttpClient(
+        host=config.CHROMA_DB_HOST, port=config.CHROMA_DB_PORT
+    )
     return chroma_client
-    # # return _chroma_client
 
 
 def get_docs_collection(
