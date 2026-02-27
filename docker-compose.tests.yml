@@ -65,5 +65,5 @@ services:
                 condition: service_healthy
         tmpfs:
             - /tmp:size=50m,mode=1700
-        # command: pytest -vv -s tests
+        # command: pytest -vv -s tests # Use this if debugging of tests execution is needed
         command: pytest tests

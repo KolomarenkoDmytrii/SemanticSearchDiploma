@@ -6,5 +6,6 @@ ollama
 semchunk
 textxtract[all]
 celery
+celery-types
 redis
 python-dotenv

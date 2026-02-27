@@ -48,6 +48,11 @@ def upload_doc(
         raise fastapi.HTTPException(status_code=400, detail="Not supported file type")
 
     contents = file.file.read()
+    if file.filename is None:
+        raise fastapi.HTTPException(
+            status_code=500, detail="Uploaded file hasn't a name"
+        )
+
     filepath = config.DATA_DIRECTORY / "docs" / file.filename
     # Ensure directory exists before opening file
     filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -85,13 +90,11 @@ def list_files(
         chroma_collections.get_docs_collection
     ),
 ):
-    filenames = list(
-        set(
-            metadata["filename"]
-            for metadata in docs_collection.get(
-                limit=docs_limit, offset=docs_offset, include=["metadatas"]
-            )["metadatas"]
-        )
+    metadatas = docs_collection.get(
+        limit=docs_limit, offset=docs_offset, include=["metadatas"]
+    )["metadatas"]
+    filenames = (
+        list(set(metadata["filename"] for metadata in metadatas)) if metadatas else []
     )
     return {"filenames": filenames}
 

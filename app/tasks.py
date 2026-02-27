@@ -18,16 +18,16 @@ celery_app = celery.Celery("tasks", broker=config.REDIS_URL, backend=config.REDI
 @celery_app.task(name="process_uploaded_doc")
 def process_uploaded_doc(
     filepath: str,
-):
-    filepath = pathlib.Path(filepath)
-    with open(filepath, "rb") as f:
+) -> dict[str, str]:
+    file = pathlib.Path(filepath)
+    with open(file, "rb") as f:
         contents = f.read()
 
     chroma_client = chroma_collections.get_chroma_client()
     docs_collection = chroma_collections.get_docs_collection(chroma_client)
-    docs_saving.save_doc_to_db(contents, filepath.name, docs_collection)
+    docs_saving.save_doc_to_db(contents, file.name, docs_collection)
 
-    return {"message": f"File '{filepath.name}' was successfuly uploaded"}
+    return {"message": f"File '{file.name}' was successfuly uploaded"}
 
 
 def get_task(task_id: str) -> models.TaskResponse:
@@ -43,7 +43,7 @@ def get_task(task_id: str) -> models.TaskResponse:
     Returns:
         TaskResponse with current task state and metadata
     """
-    result = celery.result.AsyncResult(task_id, app=celery_app)
+    result: celery.result.AsyncResult = celery.result.AsyncResult(task_id, app=celery_app)
 
     return models.TaskResponse(
         task_id=task_id,

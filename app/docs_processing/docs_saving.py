@@ -1,9 +1,8 @@
-import itertools
+from typing import cast
 
 import semchunk
-import textxtract
+import textxtract # type: ignore[import-untyped]
 import chromadb
-from chromadb.utils import batch_utils
 
 from .. import config
 from ..dependencies import chroma_collections
@@ -23,10 +22,10 @@ def split_doc_into_chuncks(doc: str) -> list[str]:
     chuncker = semchunk.chunkerify(
         lambda text: len(text.split()), config.DOC_CHUNK_SIZE
     )
-    return chuncker(doc, overlap=config.CHUNK_OVERLAP_RATIO)
+    return cast(list[str], chuncker(doc, overlap=config.CHUNK_OVERLAP_RATIO))
 
 
-def save_doc_to_db(doc: bytes, doc_filename: str, docs_collection: chromadb.Collection):
+def save_doc_to_db(doc: bytes, doc_filename: str, docs_collection: chromadb.Collection) -> None:
     extractor = textxtract.SyncTextExtractor()
     text = extractor.extract(doc, doc_filename)
     chunks = split_doc_into_chuncks(text)

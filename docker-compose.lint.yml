@@ -1,0 +1,22 @@
+services:
+    mypy-runner:
+        build:
+            dockerfile: ./AppDockerfile
+            target: development
+        container_name: mypy-runner
+        # environment:
+        #     - MYPYPATH=app/pystubs
+        volumes:
+            - .:/app
+        command: mypy app
+    pylint-runner:
+        build:
+            dockerfile: ./AppDockerfile
+            target: development
+        container_name: pylint-runner
+        volumes:
+            - .:/app
+        depends_on:
+            mypy-runner:
+                condition: service_completed_successfully
+        command: pylint app
