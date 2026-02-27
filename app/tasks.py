@@ -20,16 +20,12 @@ def process_uploaded_doc(
     filepath: str,
 ):
     filepath = pathlib.Path(filepath)
-    print("process_uploaded_doc > before reading file")
     with open(filepath, "rb") as f:
         contents = f.read()
 
     chroma_client = chroma_collections.get_chroma_client()
     docs_collection = chroma_collections.get_docs_collection(chroma_client)
-    print("process_uploaded_doc >| after chroma_collections.get_chroma_client()")
-    print("process_uploaded_doc > before save_doc_to_db")
     docs_saving.save_doc_to_db(contents, filepath.name, docs_collection)
-    print("process_uploaded_doc >| after save_doc_to_db")
 
     return {"message": f"File '{filepath.name}' was successfuly uploaded"}
 

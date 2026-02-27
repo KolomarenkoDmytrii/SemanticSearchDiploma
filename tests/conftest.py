@@ -20,6 +20,7 @@ def eager_celery(monkeypatch):
     # Force Celery tasks to run synchronously during tests
     monkeypatch.setattr("app.tasks.celery_app.conf.task_always_eager", True)
     monkeypatch.setattr("app.tasks.celery_app.conf.task_eager_propagates", True)
+    monkeypatch.setattr("app.tasks.celery_app.conf.task_store_eager_result", True)
 
 
 # send_task() do not respects eager mode, so replace it with delay(), which does
