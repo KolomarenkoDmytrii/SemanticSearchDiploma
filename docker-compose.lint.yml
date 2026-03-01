@@ -4,8 +4,6 @@ services:
             dockerfile: ./AppDockerfile
             target: development
         container_name: mypy-runner
-        # environment:
-        #     - MYPYPATH=app/pystubs
         volumes:
             - .:/app
         command: mypy app

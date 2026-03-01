@@ -12,13 +12,15 @@ services:
         environment:
           - LLM_MODEL_VERSION=embeddinggemma
           - OLLAMA_VULKAN=1
+          - MODEL_INSTALLED=0
         volumes:
           - ./model_files:/model_files  # Mount the directory with the trained mode
           - ./ollama_data:/root/.ollama
-        ports:
-            - "11434:11434"
+        # ports:
+        #     - "11434:11434"
         healthcheck:
-            test: ["CMD", "ollama", "list"]
+            # test: ["CMD", "ollama", "list"]
+            test: [ "CMD-SHELL", "ollama list | grep -q \"embeddinggemma\"" ]
             interval: 1m30s
             timeout: 30s
             retries: 5
@@ -27,8 +29,8 @@ services:
     redis-service:
         image: redis:alpine
         container_name: queue-service-redis
-        ports:
-            - "6379:6379"
+        # ports:
+        #     - "6379:6379"
         healthcheck:
             test: ["CMD", "redis-cli", "ping"]
             interval: 5s
@@ -63,9 +65,9 @@ services:
         container_name: semantic-search-chroma-db
         volumes:
             - ./data/chroma:/data
-        ports:
-            - "8000:8000"
-        command: "run --host 0.0.0.0 --port 8000"
+        # ports:
+        #     - "8000:8000"
+        command: "run --host 0.0.0.0 --port 8000 --path /data"
         healthcheck:
             test: [ "CMD", "/bin/bash", "-c", "cat < /dev/null > /dev/tcp/localhost/8000" ]
             interval: 30s

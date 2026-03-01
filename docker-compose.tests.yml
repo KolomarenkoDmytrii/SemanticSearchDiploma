@@ -9,9 +9,8 @@ services:
         environment:
             - LLM_MODEL_VERSION=locusai/all-minilm-l6-v2
             - OLLAMA_NUM_PARALLEL=4
-        # No GPU needed for basic API integration tests to save resources
         healthcheck:
-            test: [ "CMD", "ollama", "list" ]
+            test: [ "CMD-SHELL", "ollama list | grep -q \"locusai/all-minilm-l6-v2\"" ]
             interval: 10s
             timeout: 5s
             retries: 5
@@ -19,7 +18,6 @@ services:
     redis-test:
         image: redis:alpine
         container_name: redis-test
-        # No persistence for tests to ensure a clean slate every run
         command: redis-server --save "" --appendonly no
         healthcheck:
             test: [ "CMD", "redis-cli", "ping" ]

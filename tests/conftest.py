@@ -32,3 +32,13 @@ def patch_celery_send_task(monkeypatch):
         raise ValueError(f"Unexpected task name: {name}")
 
     monkeypatch.setattr(celery_app, "send_task", fake_send_task)
+
+
+@pytest.fixture(autouse=True)
+def clear_collection_after_test():
+    yield
+    client = chroma_collections.get_chroma_client()
+    collection = chroma_collections.get_docs_collection(client)
+    ids = collection.get()["ids"]
+    if len(ids) > 0:
+        collection.delete(ids)
