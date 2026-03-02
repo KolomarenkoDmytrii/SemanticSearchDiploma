@@ -65,7 +65,7 @@ def upload_doc(file: fastapi.UploadFile) -> models.TaskResponse:
 
     filepath = config.DATA_DIRECTORY / "docs" / file.filename
     # Ensure directory exists before opening file
-    filepath.parent.mkdir(parents=True, exist_ok=True)
+    filepath.parent.mkdir(exist_ok=True)
     try:
         with open(filepath, "wb") as f:
             f.write(contents)

@@ -1,4 +1,20 @@
 import io
+import re
+
+
+def get_filename(response):
+    filename = None
+    cd = response.headers.get("Content-Disposition")
+    if cd:
+        # find filename or filename* if present
+        m = re.search(r"filename\*=UTF-8\'\'(?P<fn>[^;]+)", cd)
+        if m:
+            filename = m.group("fn")
+        else:
+            m = re.search(r'filename="?(?P<fn>[^";]+)"?', cd)
+            filename = m.group("fn") if m else None
+
+    return filename
 
 
 def test_list_files(client):
@@ -64,12 +80,22 @@ def test_delete_file(client):
     file_content = b"This is a test document for deletion."
     file_name = "test_delete.txt"
     file = {"file": (file_name, io.BytesIO(file_content), "text/plain")}
-
-    upload_response = client.post("/files/upload", files=file)
-    assert upload_response.status_code == 200
+    client.post("/files/upload", files=file)
 
     deletion_response = client.delete(f"/files/delete/{file_name}")
     assert deletion_response.status_code == 200
     results = deletion_response.json()
     assert results["removed"]
     assert results["filename"] == file_name
+
+
+def test_download_file(client):
+    file_content = b"This is a test document for download."
+    file_name = "test_download.txt"
+    file = {"file": (file_name, io.BytesIO(file_content), "text/plain")}
+    client.post("/files/upload", files=file)
+
+    download_response = client.get(f"/files/download/{file_name}")
+    assert download_response.status_code == 200
+    assert file_content == download_response.content
+    assert get_filename(download_response) == file_name
