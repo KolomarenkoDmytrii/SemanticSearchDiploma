@@ -18,7 +18,10 @@ function SearchForm({ setResults }) {
     fetch(API_URL + '/search' + `?query=${query}`)
       .then((response) => response.json())
       .then((json) => { setResults(json); setIsSearchError(false); })
-      .catch((error) => setIsSearchError(true));
+      .catch((error) => {
+        console.error(error);
+        setIsSearchError(true);
+      });
   }
 
   return <Form onSubmit={handleSearch}>

@@ -30,18 +30,22 @@ function FileUploadForm({ updateFilesListHandler }) {
       const task = await response.json();
 
       let result;
+      let is_checking_task_status = true;
       do {
         const resultResponse = await fetch(API_URL + `/tasks/${task.task_id}`);
         result = await resultResponse.json();
 
         if (result.state === 'FAILURE') {
+          is_checking_task_status = false;
           throw new Error('File uploading completed with failure');
         }
-        if (result.state === 'SUCCESS') {
-          break;
+        else if (result.state === 'SUCCESS') {
+          is_checking_task_status = false;
         }
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      } while (true)
+        else {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      } while (is_checking_task_status)
 
       // setSelectedFile(null);
       // updateFilesListHandler();
@@ -90,15 +94,8 @@ function FileListItem({ filename }) {
     {isFileDeleted ?
       <Badge bg="primary">Deleted</Badge> :
       <Button ref={target} variant="primary" onClick={() => setIsShowingConfirmation(true)}>Delete</Button>}
-    <Overlay target={target.current} show={isShowingConfirmation && !isFileDeleted} placement="right">
-      {({
-        placement: _placement,
-        arrowProps: _arrowProps,
-        show: _show,
-        popper: _popper,
-        hasDoneInitialMeasure: _hasDoneInitialMeasure,
-        ...props
-      }) => (
+    <Overlay target={target} show={isShowingConfirmation && !isFileDeleted} placement="right">
+      {(props) => (
         <div
           {...props}
           style={{
@@ -121,7 +118,6 @@ function FileListItem({ filename }) {
 
 function FilesManagement() {
   const [filenames, setFilenames] = useState([]);
-  const [doListUpdate, setDoListUpdate] = useState(false)
 
   function updateFilesList() {
     fetch(API_URL + "/files/list")
