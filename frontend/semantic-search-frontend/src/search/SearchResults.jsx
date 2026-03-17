@@ -21,10 +21,6 @@ function SearchResults({ results }) {
     items.push({ id: results.ids[0][i], filename: results.metadatas[0][i]['filename'], text: results.documents[0][i] });
   }
 
-  // return <ul>
-  //   {items.map(({ id, filename, text }) =>
-  //     <li key={id}><b><FileDownloadLink filename={filename} /></b><br /><p>{text}</p></li>)}
-  // </ul>
   return <ListGroup>
     {items.map(({ id, filename, text }) =>
       <ListGroup.Item key={id}><SearchResultsItem filename={filename} text={text} /></ListGroup.Item>)}

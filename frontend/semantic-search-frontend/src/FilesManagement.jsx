@@ -7,6 +7,8 @@ import ListGroup from 'react-bootstrap/ListGroup';
 import Stack from 'react-bootstrap/Stack';
 import Form from 'react-bootstrap/Form';
 
+import { useTranslation } from 'react-i18next';
+
 import { API_URL } from './config';
 import FileDownloadLink from './FileDownloadLink';
 
@@ -14,6 +16,7 @@ function FileUploadForm({ updateFilesListHandler }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isError, setIsError] = useState(false);
+  const { t } = useTranslation();
 
   async function onFileUpload() {
     setIsUploading(true);
@@ -46,9 +49,6 @@ function FileUploadForm({ updateFilesListHandler }) {
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } while (is_checking_task_status)
-
-      // setSelectedFile(null);
-      // updateFilesListHandler();
     } catch (error) {
       console.error(error);
       setIsError(true);
@@ -60,7 +60,7 @@ function FileUploadForm({ updateFilesListHandler }) {
   }
 
   return <Form.Group>
-    <Form.Label>Upload a file to the server</Form.Label>
+    <Form.Label>{t('file-upload-form-label')}</Form.Label>
     <Stack direction="horizontal" gap={3}>
       <Form.Control
         type="file"
@@ -71,8 +71,8 @@ function FileUploadForm({ updateFilesListHandler }) {
         }
         } />
       {(selectedFile && !isUploading) && <Button onClick={onFileUpload}>Upload!</Button>}
-      {isUploading && <Badge bg="info">Processing...</Badge>}
-      {isError && <Badge bg="danger">Error while processing!</Badge>}
+      {isUploading && <Badge bg="info">{t('file-in-processing')}</Badge>}
+      {isError && <Badge bg="danger">{t('file-processing-error')}</Badge>}
     </Stack>
   </Form.Group>;
 }
@@ -81,6 +81,7 @@ function FileListItem({ filename }) {
   const [isShowingConfirmation, setIsShowingConfirmation] = useState(false);
   const [isFileDeleted, setIsFileDeleted] = useState(false);
   const target = useRef(null);
+  const { t } = useTranslation();
 
   function deleteFile() {
     fetch(API_URL + '/files/delete/' + filename, { method: 'DELETE' })
@@ -92,8 +93,8 @@ function FileListItem({ filename }) {
   return <Stack direction="horizontal" gap={3}>
     <FileDownloadLink filename={filename} />
     {isFileDeleted ?
-      <Badge bg="primary">Deleted</Badge> :
-      <Button ref={target} variant="primary" onClick={() => setIsShowingConfirmation(true)}>Delete</Button>}
+      <Badge bg="primary">{t('file-is-deleted')}</Badge> :
+      <Button ref={target} variant="primary" onClick={() => setIsShowingConfirmation(true)}>{t('file-delete-btn')}</Button>}
     <Overlay target={target} show={isShowingConfirmation && !isFileDeleted} placement="right">
       {(props) => (
         <div
@@ -108,8 +109,8 @@ function FileListItem({ filename }) {
           }}
         >
           Delete?
-          <Button variant="secondary" onClick={deleteFile}>Yes</Button>
-          <Button variant="primary" onClick={() => setIsShowingConfirmation(false)}>No</Button>
+          <Button variant="secondary" onClick={deleteFile}>{t('confirmation-yes')}</Button>
+          <Button variant="primary" onClick={() => setIsShowingConfirmation(false)}>{t('confirmation-no')}</Button>
         </div>
       )}
     </Overlay>
@@ -118,6 +119,7 @@ function FileListItem({ filename }) {
 
 function FilesManagement() {
   const [filenames, setFilenames] = useState([]);
+  const { t } = useTranslation();
 
   function updateFilesList() {
     fetch(API_URL + "/files/list")
@@ -131,7 +133,7 @@ function FilesManagement() {
   return <>
     <FileUploadForm updateFilesListHandler={updateFilesList} />
     <hr />
-    <h3>Uploaded files</h3>
+    <h3>{t('files-page-hdr')}</h3>
     <ListGroup>
       {filenames.map((filename) => <ListGroup.Item key={filename}><FileListItem filename={filename} /></ListGroup.Item>)}
     </ListGroup>
